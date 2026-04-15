@@ -1,0 +1,39 @@
+# configs/benchmarks/longbench.yaml
+# LongBench evaluation — all 16 tasks, full sweep.
+
+defaults:
+  - /default
+
+benchmark:
+  output_dir: "results/longbench"
+  num_warmup_requests: 10
+  num_runs: 5
+  concurrency_levels: [1, 4, 8]
+  context_lengths: [8192, 16384, 32768]
+  memory_budgets:
+    generous: 0.90
+    medium: 0.75
+    constrained: 0.60
+    severe: 0.45
+
+  longbench:
+    dataset_name: "THUDM/LongBench"
+    tasks:
+      - narrativeqa       # single-doc QA   — ROUGE-L
+      - qasper            # single-doc QA   — F1
+      - multifieldqa_en   # multi-doc QA    — F1
+      - hotpotqa          # multi-doc QA    — F1
+      - 2wikimqa          # multi-doc QA    — F1
+      - musique           # multi-doc QA    — F1
+      - gov_report        # summarization   — ROUGE-L
+      - qmsum             # summarization   — ROUGE-L
+      - multi_news        # summarization   — ROUGE-L
+      - trec              # classification  — EM
+      - triviaqa          # single-doc QA   — F1
+      - samsum            # dialogue sum.   — ROUGE-L
+      - passage_count     # counting        — EM
+      - passage_retrieval_en  # retrieval   — EM
+      - lcc               # code completion — edit_sim
+      - repobench-p       # code retrieval  — edit_sim
+    max_samples_per_task: 200
+    max_input_tokens: 31500

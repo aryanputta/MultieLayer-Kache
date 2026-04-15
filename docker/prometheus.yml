@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    monitor: 'kv-cache-orchestrator'
+
+scrape_configs:
+  - job_name: 'kv-orchestrator'
+    static_configs:
+      - targets: ['api:8000']
+    metrics_path: '/v1/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

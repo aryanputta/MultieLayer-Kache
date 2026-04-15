@@ -1,0 +1,170 @@
+# =============================================================================
+# configs/default.yaml — Master configuration for the KV Cache Orchestrator
+# Override individual keys via Hydra: python script.py policy.name=hybrid
+# =============================================================================
+
+project:
+  name: adaptive-kv-cache-orchestrator
+  version: "0.1.0"
+  seed: 42
+  output_dir: results/
+
+# -----------------------------------------------------------------------------
+# Model
+# -----------------------------------------------------------------------------
+model:
+  name: "meta-llama/Llama-3.1-8B-Instruct"
+  dtype: "float16"          # float16 | bfloat16 | float32
+  max_model_len: 32768
+  gpu_memory_utilization: 0.85
+  tensor_parallel_size: 1
+  enforce_eager: false
+  swap_space: 4             # GiB of CPU swap space for vLLM
+  quantization: null        # null | "awq" | "gptq" | "squeezellm"
+  tokenizer: null           # null = same as model.name
+
+# -----------------------------------------------------------------------------
+# Serving
+# -----------------------------------------------------------------------------
+serving:
+  host: "0.0.0.0"
+  port: 8000
+  max_concurrent_requests: 32
+  request_timeout_s: 300
+  log_requests: true
+  enable_metrics: true      # expose /v1/metrics for Prometheus
+
+# -----------------------------------------------------------------------------
+# KV Cache Policy
+# -----------------------------------------------------------------------------
+policy:
+  name: "hybrid"            # full_cache | sliding_window | h2o | prefix_caching
+                            # quantize_only | offload_only | hybrid | learned
+  scheduling_interval_ms: 50
+  memory_pressure_low: 0.65   # below this: keep everything on GPU
+  memory_pressure_high: 0.85  # above this: aggressive eviction
+
+  heuristic:
+    sliding_window_blocks: 512
+    heavy_hitter_fraction: 0.20   # top 20 % by attention mass = "heavy hitters"
+    sink_token_blocks: 4          # always keep the first N blocks (attention sinks)
+    recency_weight: 0.40
+    attention_weight: 0.40
+    reuse_weight: 0.20
+
+  learned:
+    model_path: null              # path to trained XGBoost / LightGBM ranker
+    feature_set: "full"           # full | minimal | no_query | no_pressure
+    decision_threshold: 0.50
+    fallback_policy: "h2o"        # policy used when model is not loaded
+    alpha: 0.40                   # weight: future attention in importance label
+    beta: 0.30                    # weight: reuse probability
+    gamma: 0.30                   # weight: quality drop if removed
+    delta: 0.10                   # penalty: memory cost
+
+  quantization:
+    enabled: true
+    dtype: "int8"                 # int8 | fp8 | int4
+    # Blocks with importance_score < min_importance are quantised (not evicted)
+    min_importance_score: 0.30
+
+  offload:
+    enabled: true
+    target: "cpu"                 # cpu | nvme
+    max_offload_fraction: 0.40
+    offload_threshold_score: 0.15
+
+# -----------------------------------------------------------------------------
+# Telemetry
+# -----------------------------------------------------------------------------
+telemetry:
+  enabled: true
+  storage_backend: "parquet"      # parquet | memory | redis
+  output_dir: "data/traces"
+  flush_interval_s: 10
+  max_buffer_size: 10000
+  redis_url: "redis://localhost:6379"
+
+# -----------------------------------------------------------------------------
+# Benchmark
+# -----------------------------------------------------------------------------
+benchmark:
+  output_dir: "results"
+  num_warmup_requests: 10
+  num_runs: 3                     # repeat each condition for variance estimates
+  concurrency_levels: [1, 4, 8, 16]
+  context_lengths: [8192, 16384, 32768]
+  memory_budgets:
+    generous: 0.90
+    medium: 0.75
+    constrained: 0.60
+    severe: 0.45
+
+  longbench:
+    dataset_name: "THUDM/LongBench"
+    tasks:
+      - narrativeqa
+      - qasper
+      - multifieldqa_en
+      - hotpotqa
+      - 2wikimqa
+      - musique
+      - gov_report
+      - qmsum
+      - multi_news
+      - trec
+      - triviaqa
+      - samsum
+      - passage_count
+      - passage_retrieval_en
+      - lcc
+      - repobench-p
+    max_samples_per_task: 200
+    max_input_tokens: 31500
+
+  stress:
+    arrival_rates: [1.0, 2.0, 5.0, 10.0]  # requests/second
+    burst_sizes: [1, 4, 8]
+    duration_s: 120
+    max_concurrency: 64
+
+# -----------------------------------------------------------------------------
+# Metrics to collect
+# -----------------------------------------------------------------------------
+metrics:
+  quality:
+    - f1
+    - em
+    - rouge_l
+    - edit_sim
+  system:
+    - throughput_tps
+    - rps
+    - p50_latency_ms
+    - p95_latency_ms
+    - p99_latency_ms
+    - ttft_ms
+    - tpot_ms
+    - gpu_mem_peak_mb
+    - gpu_mem_avg_mb
+    - cpu_offload_mb
+    - blocks_evicted
+    - blocks_quantized
+    - blocks_offloaded
+
+# -----------------------------------------------------------------------------
+# Logging & Experiment Tracking
+# -----------------------------------------------------------------------------
+logging:
+  level: "INFO"             # DEBUG | INFO | WARNING | ERROR
+  format: "rich"            # rich | json | plain
+
+  mlflow:
+    enabled: false
+    tracking_uri: "http://localhost:5000"
+    experiment_name: "kv-cache-orchestrator"
+
+  wandb:
+    enabled: false
+    project: "kv-cache-orchestrator"
+    entity: null

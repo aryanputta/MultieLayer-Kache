@@ -1,0 +1,31 @@
+# configs/benchmarks/stress.yaml
+# Synthetic stress / load tests — bursty arrivals, long contexts, mixed batches.
+
+defaults:
+  - /default
+
+benchmark:
+  output_dir: "results/stress"
+  num_warmup_requests: 20
+  num_runs: 3
+  concurrency_levels: [16, 32, 64]
+  context_lengths: [32768, 65536, 131072]
+  memory_budgets:
+    constrained: 0.60
+    severe: 0.45
+
+  stress:
+    # Poisson arrival rate sweep (requests / second)
+    arrival_rates: [1.0, 2.0, 5.0, 10.0, 20.0]
+    # Max simultaneous requests during burst
+    burst_sizes: [1, 4, 8, 16]
+    # Duration per scenario (seconds)
+    duration_s: 180
+    # Peak concurrency for memory spike test
+    max_concurrency: 64
+    # Prefix reuse ratio for prefix test
+    prefix_reuse_fraction: 0.80
+    # Turns per session for long-chat test
+    chat_turns: 20
+    # Ramp-up time for memory spike (seconds)
+    ramp_up_s: 30

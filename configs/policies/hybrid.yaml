@@ -1,0 +1,37 @@
+# configs/policies/hybrid.yaml
+# Adaptive hybrid controller — the main research contribution.
+# Combines heuristic scoring with memory-pressure-sensitive action selection
+# and optional learned ranker override.
+
+defaults:
+  - /default
+
+policy:
+  name: "hybrid"
+  scheduling_interval_ms: 50
+  memory_pressure_low: 0.65
+  memory_pressure_high: 0.85
+
+  heuristic:
+    sliding_window_blocks: 512
+    heavy_hitter_fraction: 0.20
+    sink_token_blocks: 4
+    recency_weight: 0.40
+    attention_weight: 0.40
+    reuse_weight: 0.20
+
+  learned:
+    model_path: null       # set to path to enable learned scoring
+    feature_set: "full"
+    fallback_policy: "h2o"
+
+  quantization:
+    enabled: true
+    dtype: "int8"
+    min_importance_score: 0.30
+
+  offload:
+    enabled: true
+    target: "cpu"
+    max_offload_fraction: 0.40
+    offload_threshold_score: 0.15

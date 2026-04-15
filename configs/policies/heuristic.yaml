@@ -1,0 +1,25 @@
+# configs/policies/heuristic.yaml
+# Overrides for heuristic baseline experiments.
+# Usage: python run_benchmark.py +policy=heuristic
+# Sweeps all non-learned policies in sequence.
+
+defaults:
+  - /default
+
+policy:
+  name: "h2o"
+  scheduling_interval_ms: 100
+
+  heuristic:
+    sliding_window_blocks: 256
+    heavy_hitter_fraction: 0.20
+    sink_token_blocks: 4
+    recency_weight: 0.30
+    attention_weight: 0.50
+    reuse_weight: 0.20
+
+  quantization:
+    enabled: false   # isolate eviction-only effect
+
+  offload:
+    enabled: false

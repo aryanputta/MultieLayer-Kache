@@ -1,0 +1,30 @@
+# configs/policies/learned.yaml
+# Overrides for the trained XGBoost/LightGBM ranker policy.
+
+defaults:
+  - /default
+
+policy:
+  name: "learned"
+  scheduling_interval_ms: 50
+
+  learned:
+    model_path: "results/models/importance_ranker.pkl"
+    feature_set: "full"
+    decision_threshold: 0.50
+    fallback_policy: "h2o"
+    alpha: 0.40
+    beta: 0.30
+    gamma: 0.30
+    delta: 0.10
+
+  quantization:
+    enabled: true
+    dtype: "int8"
+    min_importance_score: 0.30
+
+  offload:
+    enabled: true
+    target: "cpu"
+    max_offload_fraction: 0.40
+    offload_threshold_score: 0.15
